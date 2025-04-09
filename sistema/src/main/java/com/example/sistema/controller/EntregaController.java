@@ -13,6 +13,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/entrega")
 public class EntregaController {
+
     private final EntregaService entregaService;
     private final Notificador notificador;
     private final Map<String, FreteStrategy> estrategias;
@@ -27,12 +28,21 @@ public class EntregaController {
         );
     }
 
-    @GetMapping("/calcular")
-    public double calcularFrete(@RequestParam String modalidade, @RequestParam double peso) {
-        FreteStrategy estrategia = estrategias.get(modalidade.toLowerCase());
+    @PostMapping("/calcular")
+    public String realizarEntrega(@RequestBody Map<String, Object> dados) {
+        String modalidade = dados.get("modalidade").toString().toLowerCase();
+        double peso = Double.parseDouble(dados.get("peso").toString());
+
+        FreteStrategy estrategia = estrategias.get(modalidade);
+
         if (estrategia == null) {
-            throw new IllegalArgumentException("Modalidade inválida!");
+            throw new IllegalArgumentException("Modalidade inválida. As opções válidas são: expressa, economica ou terceirizada.");
         }
-        return entregaService.calcularFrete(estrategia, peso);
+
+        double valor = entregaService.calcularFrete(estrategia, peso);
+
+        notificador.notificarTodos("Entrega concluída com sucesso. Modalidade: " + modalidade + " | Valor do frete: R$ " + valor);
+
+        return "Entrega realizada com sucesso! Frete: R$ " + valor;
     }
 }
